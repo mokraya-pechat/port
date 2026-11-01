@@ -8,6 +8,34 @@
 <meta name="description" content="Мини-игра канала «Мокрая печать»: вывезите контейнер из порта, пока хранение не съело весь груз.">
 <meta property="og:title" content="Контейнер в порту: мини-игра «Мокрой печати»">
 <meta property="og:description" content="Контейнер из Китая пришёл в Петербург. Каждый день простоя стоит денег. Сможете вывезти дешевле?">
+<script>
+/* Источник визита и Яндекс Метрика (счётчик 113988871). Данные Telegram из адреса в Метрику не уходят. */
+(function(){
+  var q = new URLSearchParams(location.search);
+  var h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  var sp = h.get('tgWebAppStartParam') || q.get('tgWebAppStartParam') || '';
+  var inTg = /tgWebApp/.test(location.hash) || !!window.TelegramWebviewProxy;
+  if (!q.get('utm_source')){
+    var src = '', med = '';
+    if (sp){ var a = sp.split('-'); src = a[0]; med = a[1] || ''; }
+    else if (inTg){ src = 'telegram'; med = 'miniapp'; }
+    if (src){
+      q.set('utm_source', src); if (med) q.set('utm_medium', med); q.set('utm_campaign', 'port');
+      try { history.replaceState(null, '', location.pathname + '?' + q.toString() + location.hash); } catch(e) {}
+    }
+  }
+  window.MP_ENV = { tg: inTg, sp: sp };
+  var cleanUrl = location.href.split('#')[0];
+  (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();
+    for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+  })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=113988871', 'ym');
+  ym(113988871, 'init', { ssr: true, webvisor: true, clickmap: true, referrer: document.referrer, url: cleanUrl, accurateTrackBounce: true, trackLinks: true, trackHash: false,
+    params: { platform: inTg ? 'telegram' : 'browser', start: sp || 'нет' } });
+})();
+function mpGoal(name, params){ try { if (window.ym) ym(113988871, 'reachGoal', name, params || {}); } catch(e) {} }
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/113988871" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 <style>
 :root{
   --bg:#0c1430;--bg2:#111c42;--panel:#0a1128;--line:#22305e;
@@ -618,6 +646,7 @@ function choose(i){
   $('cChips').innerHTML = chips.join('');
   $('cResult').style.display = '';
   addLog(curCard.title + ': ' + ch.t.toLowerCase());
+  mpGoal('choice', { event: curCard.id, choice: ch.t, day: S.day });
 }
 function closeEvent(){
   if (!curChoice) return;
@@ -717,6 +746,8 @@ function showEnd(kind){
       : 'У меня груз ушёл государству, счёт за простой ' + fmt(total) + '. Сможете вывезти контейнер?';
   show('scrEnd');
   window.scrollTo(0, 0);
+  var tb = total < 200000 ? 'до 200 тыс' : total < 500000 ? '200-500 тыс' : total < 1000000 ? '500 тыс-1 млн' : 'больше 1 млн';
+  mpGoal('game_end', { result: kind, rating: r, total: tb, day: S.day < 15 ? 'до 15' : S.day < 30 ? '15-29' : S.day < 60 ? '30-59' : S.day < 120 ? '60-119' : '120+' });
 }
 function loadBest(){ try { var b = JSON.parse(store.get('mp_port_best') || 'null'); return b && typeof b.total === 'number' ? b : null; } catch(e) { return null; } }
 
@@ -727,6 +758,7 @@ function renderBestStart(){
   $('bestStart').innerHTML = b ? 'Ваш рекорд: <b>' + fmt(b.total) + '</b>, вывезли на ' + b.day + '-й день' : '';
 }
 function startGame(){
+  mpGoal(S ? 'again' : 'game_start');
   initAudio();
   clearTimeout(timer);
   S = newState();
@@ -755,6 +787,7 @@ function legacyCopy(text){
   } catch(e) { return false; }
 }
 function share(){
+  mpGoal('share');
   var url = location.href.split('#')[0].replace(/[?&]speed=[^&]*/, '');
   var data = { title: 'Контейнер в порту', text: lastShareText, url: url };
   if (tg && tg.openTelegramLink){
