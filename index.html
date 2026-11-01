@@ -757,6 +757,9 @@ function legacyCopy(text){
 function share(){
   var url = location.href.split('#')[0].replace(/[?&]speed=[^&]*/, '');
   var data = { title: 'Контейнер в порту', text: lastShareText, url: url };
+  if (tg && tg.openTelegramLink){
+    try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/mokraya_pechat_bot/port') + '&text=' + encodeURIComponent(lastShareText)); return; } catch(e) {}
+  }
   if (navigator.share){
     navigator.share(data).catch(function(err){ if (!err || err.name !== 'AbortError') fallback(); });
   } else fallback();
@@ -765,7 +768,11 @@ function share(){
   }
 }
 var tg = null;
-try { if (window.Telegram && window.Telegram.WebApp){ tg = window.Telegram.WebApp; tg.ready(); tg.expand(); } } catch(e) { tg = null; }
+function initTg(){ try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData){ tg = window.Telegram.WebApp; tg.ready(); tg.expand(); } } catch(e) { tg = null; } }
+initTg();
+if (!tg && (/tgWebApp/.test(location.hash) || window.TelegramWebviewProxy)){
+  var tgs = document.createElement('script'); tgs.src = 'https://telegram.org/js/telegram-web-app.js'; tgs.onload = initTg; document.head.appendChild(tgs);
+}
 function openExt(e, url, isTg){
   if (!tg) return;
   try {
