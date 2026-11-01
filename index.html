@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c1430">
+<title>Контейнер в порту</title>
+<meta name="description" content="Мини-игра канала «Мокрая печать»: вывезите контейнер из порта, пока хранение не съело весь груз.">
+<meta property="og:title" content="Контейнер в порту: мини-игра «Мокрой печати»">
+<meta property="og:description" content="Контейнер из Китая пришёл в Петербург. Каждый день простоя стоит денег. Сможете вывезти дешевле?">
+<style>
+:root{
+  --bg:#0c1430;--bg2:#111c42;--panel:#0a1128;--line:#22305e;
+  --text:#eef2ff;--muted:#9aa6cc;--yellow:#f7c531;--red:#ff4d5e;--green:#35e08a;--blue:#2a6fdb;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(120% 70% at 50% 0%,#16245a 0%,var(--bg) 55%) fixed,var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  min-height:100vh;min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:var(--yellow)}
+.wrap{max-width:480px;margin:0 auto;padding:12px 16px calc(16px + env(safe-area-inset-bottom));min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+.screen{display:none;flex:1;flex-direction:column}
+.screen.on{display:flex}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* start */
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--yellow);font-weight:700;margin:10px 0 6px}
+h1{font-size:clamp(30px,9vw,40px);line-height:1.05;margin:0 0 10px;font-weight:900;letter-spacing:-.01em}
+h1 span{color:var(--yellow)}
+.lead{font-size:16px;line-height:1.45;color:#d7ddf5;margin:0 0 12px}
+.lead b{color:var(--text)}
+.tariff{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--muted);line-height:1.5;margin:4px 0 12px}
+.tariff b{color:var(--text)}
+.tariff .row{padding:2px 0}
+.tariff .row span{color:var(--muted)}
+.best{font-size:14px;color:var(--muted);margin:0 0 12px;min-height:1em}
+.best b{color:var(--green)}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border:0;border-radius:14px;background:var(--yellow);color:#151a2e;font-weight:800;font-size:18px;letter-spacing:.01em;box-shadow:0 6px 20px rgba(247,197,49,.25);transition:transform .08s}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--text);border:1.5px solid var(--line);box-shadow:none}
+.row2{display:flex;gap:10px;margin-top:10px}
+.row2 .btn{flex:1}
+.links{display:flex;flex-direction:column;gap:8px;margin:16px 0 8px;font-size:15px}
+.links a{text-decoration:none;border-bottom:1px solid rgba(247,197,49,.35);align-self:flex-start;padding-bottom:1px}
+.foot{font-size:11px;line-height:1.45;color:#6f7ba3;margin-top:auto;padding-top:14px}
+
+/* game top */
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:8px}
+.day{display:flex;align-items:baseline;gap:8px}
+.day .lbl{font-size:13px;letter-spacing:.14em;color:var(--muted);font-weight:700}
+.day .v{font-size:40px;font-weight:900;line-height:1;color:var(--yellow);text-shadow:0 0 18px rgba(247,197,49,.45)}
+.iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;flex:none}
+.iconbtn svg{width:22px;height:22px}
+.vh{font-size:12.5px;color:var(--muted);margin:0 0 6px;display:flex;justify-content:space-between;gap:8px}
+.vh.alarm{color:var(--red);font-weight:700}
+.vhbar{height:5px;background:#1a2550;border-radius:4px;overflow:hidden;margin-bottom:10px;position:relative}
+.vhbar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--green),var(--yellow) 60%,var(--red));border-radius:4px;width:0;transition:width .3s}
+.vhbar b{position:absolute;left:80%;top:-2px;bottom:-2px;width:2px;background:var(--red)}
+.counters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 11px 9px;position:relative;overflow:hidden;transition:border-color .3s}
+.box .lbl{font-size:11px;letter-spacing:.12em;font-weight:800;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.box .v{font-size:clamp(19px,6.2vw,27px);font-weight:900;line-height:1.15;margin:4px 0 2px;white-space:nowrap;transition:color .3s,text-shadow .3s}
+.box .s{font-size:12px;color:var(--muted);white-space:nowrap}
+.box.free{border-color:rgba(53,224,138,.35)}
+.box.free .v{color:var(--green);text-shadow:0 0 14px rgba(53,224,138,.55)}
+.box.pay{border-color:rgba(255,77,94,.45)}
+.box.pay .v{color:var(--red);text-shadow:0 0 16px rgba(255,77,94,.65)}
+.box.pay .s{color:#ffb0b8}
+.box.total{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px}
+.box.total .v{font-size:clamp(28px,9.5vw,40px);color:var(--text);text-shadow:0 0 18px rgba(255,255,255,.25);margin:0}
+.box.total.hot .v{color:var(--red);text-shadow:0 0 20px rgba(255,77,94,.7)}
+.box.total .s{text-align:right;white-space:normal;line-height:1.3}
+.pulse .v{animation:pulse .35s ease-out}
+@keyframes pulse{0%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+/* scene */
+.scene{position:relative;margin:10px 0 6px;border-radius:16px;overflow:hidden;background:linear-gradient(#101b46,#0d1636);border:1px solid var(--line)}
+.scene svg{display:block;width:100%;height:auto}
+.scene.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translate(-4px,2px)}50%{transform:translate(4px,-2px)}75%{transform:translate(-2px,1px)}}
+.box40{transition:transform 1.6s cubic-bezier(.5,0,.75,0)}
+.box40.go{transform:translateX(420px)}
+.stamp{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-11deg);border:4px solid var(--red);color:var(--red);padding:6px 14px;border-radius:8px;font-weight:900;font-size:clamp(20px,7vw,30px);letter-spacing:.06em;text-align:center;line-height:1.05;background:rgba(12,20,48,.55);white-space:nowrap;opacity:0;pointer-events:none;text-shadow:0 0 10px rgba(255,77,94,.4)}
+.stamp.small{font-size:clamp(15px,5vw,21px)}
+.stamp.green{border-color:var(--green);color:var(--green);text-shadow:0 0 10px rgba(53,224,138,.4)}
+.stamp.yellow{border-color:var(--yellow);color:var(--yellow)}
+.stamp.on{animation:stamp .45s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-11deg) scale(2.6)}100%{opacity:.95;transform:translate(-50%,-50%) rotate(-11deg) scale(1)}}
+.status{font-size:15px;line-height:1.4;color:#d7ddf5;margin:4px 0 6px;min-height:42px}
+.log{list-style:none;margin:0;padding:0;font-size:13px;color:var(--muted);line-height:1.35}
+.log li{padding:5px 0;border-top:1px solid rgba(34,48,94,.7);display:flex;gap:8px}
+.log li span{color:var(--yellow);font-weight:700;flex:none;min-width:44px}
+
+/* card */
+.overlay{position:fixed;inset:0;background:rgba(5,9,24,.62);display:none;align-items:flex-end;justify-content:center;z-index:20;padding:0 0 env(safe-area-inset-bottom)}
+.overlay.on{display:flex}
+.card{width:100%;max-width:480px;background:linear-gradient(#17245a,#111b45);border:1px solid #2c3d78;border-bottom:0;border-radius:22px 22px 0 0;padding:16px 16px 18px;box-shadow:0 -10px 40px rgba(0,0,0,.45);animation:up .28s ease-out;max-height:92vh;overflow:auto}
+@media (min-width:600px){.overlay{align-items:center}.card{border-radius:22px;border-bottom:1px solid #2c3d78}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.card .tag{font-size:11.5px;letter-spacing:.14em;color:var(--yellow);font-weight:800;text-transform:uppercase}
+.card h2{font-size:23px;line-height:1.15;margin:6px 0 8px;font-weight:900}
+.card p{font-size:16px;line-height:1.45;margin:0 0 14px;color:#d7ddf5}
+.choices{display:flex;flex-direction:column;gap:9px}
+.choice{text-align:left;width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:1.5px solid #34468a;background:#0d1638;font-size:16px;font-weight:700;line-height:1.3;transition:border-color .15s,background .15s}
+.choice:hover{border-color:var(--yellow)}
+.choice:active{background:#16224f}
+.result{font-size:16px;line-height:1.45;color:var(--text);margin:0 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.chip{font-size:13px;font-weight:800;padding:5px 10px;border-radius:999px;background:#0d1638;border:1px solid #34468a}
+.chip.bad{color:var(--red);border-color:rgba(255,77,94,.5)}
+.chip.good{color:var(--green);border-color:rgba(53,224,138,.5)}
+.chip.neu{color:var(--muted)}
+
+/* end */
+.endtop{text-align:center;margin-top:4px}
+.endtop .rt{font-size:clamp(26px,8vw,34px);font-weight:900;color:var(--yellow);line-height:1.1;margin:8px 0 4px;text-shadow:0 0 18px rgba(247,197,49,.35)}
+.endtop .when{font-size:15px;color:var(--muted);margin:0 0 10px}
+.bill{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:6px 0 12px}
+.bill .r{display:flex;justify-content:space-between;gap:10px;font-size:15px;padding:5px 0;color:#d7ddf5}
+.bill .r b{font-weight:800}
+.bill .r.t{border-top:1px solid var(--line);margin-top:4px;padding-top:9px;font-size:17px}
+.bill .r.t b{font-size:clamp(24px,7.5vw,32px);color:var(--red);text-shadow:0 0 16px rgba(255,77,94,.55)}
+.lesson{font-size:16px;line-height:1.45;border-left:3px solid var(--yellow);padding:2px 0 2px 12px;margin:0 0 12px}
+.endscene{margin:0 0 8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#22305e;color:var(--text);padding:10px 16px;border-radius:12px;font-size:14px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (min-height:900px){.scene{margin:14px 0 10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- START -->
+  <section class="screen on" id="scrStart">
+    <div class="kicker">Мини-игра «Мокрой печати»</div>
+    <h1>Контейнер <span>в порту</span></h1>
+    <div class="scene" id="sceneStart"></div>
+    <p class="lead">40-футовый контейнер из Китая пришёл в Петербург. Клиент должен его забрать, но у клиента, поставщика, банка и таможни свои планы. <b>Каждый день простоя капает в рублях.</b> Ваша задача: вывезти груз как можно дешевле.</p>
+    <div class="tariff">
+      <div class="row"><span>Хранение на терминале:</span> <b>10 дней бесплатно, потом от $90 до $150 в сутки</b></div>
+      <div class="row"><span>Контейнер линии:</span> <b>14 дней бесплатно, потом от $60 до $120 в сутки</b></div>
+      <div class="row"><span>Временное хранение:</span> <b>4 месяца, потом таможня</b></div>
+    </div>
+    <p class="best" id="bestStart"></p>
+    <button class="btn" id="btnStart">Принять контейнер</button>
+    <div class="foot">Расчёт по публичному прайсу линии, терминал Бронка, март 2026; курс ЦБ 31.10.2026. Игра, а не юридическая консультация.</div>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen" id="scrGame">
+    <div class="topbar">
+      <div class="day"><span class="lbl">ДЕНЬ</span><span class="v num" id="vDay">0</span></div>
+      <button class="iconbtn" id="btnMute" aria-label="Звук"></button>
+    </div>
+    <div class="vh" id="vhText"><span id="vhL">Судно на подходе</span><span id="vhR"></span></div>
+    <div class="vhbar"><i id="vhBar"></i><b title="120 дней"></b></div>
+    <div class="counters">
+      <div class="box free" id="bStor"><div class="lbl">Хранение</div><div class="v num" id="vStor">0&nbsp;₽</div><div class="s" id="sStor">бесплатно</div></div>
+      <div class="box free" id="bLine"><div class="lbl">Контейнер линии</div><div class="v num" id="vLine">0&nbsp;₽</div><div class="s" id="sLine">бесплатно</div></div>
+      <div class="box total" id="bTotal"><div><div class="lbl">Итого</div><div class="v num" id="vTotal">0&nbsp;₽</div></div><div class="s" id="sTotal">курс 80,56 ₽/$</div></div>
+    </div>
+    <div class="scene" id="sceneGame"></div>
+    <div class="status" id="status">Судно на подходе к Петербургу. Пока всё бесплатно.</div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <!-- END -->
+  <section class="screen" id="scrEnd">
+    <div class="scene endscene" id="sceneEnd"></div>
+    <div class="endtop">
+      <div class="kicker" style="margin:4px 0 0">Итог</div>
+      <div class="rt" id="eRating">Экспедитор от бога</div>
+      <div class="when" id="eWhen"></div>
+    </div>
+    <div class="bill">
+      <div class="r"><span>Хранение на терминале</span><b class="num" id="eStor"></b></div>
+      <div class="r"><span>Контейнер линии</span><b class="num" id="eLine"></b></div>
+      <div class="r"><span>Доплаты, сертификаты, комиссии</span><b class="num" id="eExtra"></b></div>
+      <div class="r t"><span>Итого</span><b class="num" id="eTotal"></b></div>
+    </div>
+    <p class="lesson" id="eLesson">Самая дорогая услуга в логистике: время, когда никто ничего не делает.</p>
+    <p class="best" id="bestEnd"></p>
+    <button class="btn" id="btnAgain">Сыграть ещё</button>
+    <div class="row2"><button class="btn ghost" id="btnShare">Поделиться</button></div>
+    <div class="links">
+      <a id="lnkYt" href="https://youtu.be/__3cUv3wt-8" target="_blank" rel="noopener">Разбор с цифрами: YouTube</a>
+      <a id="lnkTg" href="https://t.me/mokraya_pechat" target="_blank" rel="noopener">Telegram: t.me/mokraya_pechat</a>
+    </div>
+    <div class="foot">Расчёт по публичному прайсу линии, терминал Бронка, март 2026; курс ЦБ 31.10.2026. Игра, а не юридическая консультация.</div>
+  </section>
+</div>
+
+<!-- EVENT CARD -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true">
+  <div class="card" id="card">
+    <div class="tag" id="cTag">Событие</div>
+    <h2 id="cTitle"></h2>
+    <p id="cText"></p>
+    <div class="choices" id="cChoices"></div>
+    <div id="cResult" style="display:none">
+      <div class="result" id="cResText"></div>
+      <div class="chips" id="cChips"></div>
+      <button class="btn" id="cNext">Дальше</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<template id="tplScene">
+<svg viewBox="0 0 360 160" xmlns="http://www.w3.org/2000/svg" aria-label="Контейнер на терминале">
+  <defs>
+    <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14215a"/><stop offset="1" stop-color="#0e1838"/></linearGradient>
+    <linearGradient id="gBox" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a82ea"/><stop offset="1" stop-color="#1d4fa8"/></linearGradient>
+    <pattern id="pRib" width="8" height="10" patternUnits="userSpaceOnUse"><rect width="8" height="10" fill="url(#gBox)"/><rect x="0" width="3" height="10" fill="#ffffff" opacity=".10"/><rect x="5" width="1.2" height="10" fill="#0a2a66" opacity=".35"/></pattern>
+  </defs>
+  <rect width="360" height="160" fill="url(#gSky)"/>
+  <circle cx="300" cy="28" r="12" fill="#f7c531" opacity=".18"/>
+  <!-- crane -->
+  <g fill="none" stroke="#f7c531" stroke-width="3" opacity=".55" stroke-linejoin="round">
+    <path d="M40 120 V30 M78 120 V30 M40 30 H210 M40 30 L78 60 M78 30 L40 60 M30 22 H95 M60 22 V30"/>
+    <path d="M120 30 V48 M116 48 H124" stroke-width="2"/>
+  </g>
+  <!-- background stacks -->
+  <g opacity=".45">
+    <rect x="218" y="70" width="64" height="24" rx="2" fill="#c2453f"/><rect x="284" y="70" width="64" height="24" rx="2" fill="#2f9a6a"/>
+    <rect x="218" y="96" width="64" height="24" rx="2" fill="#7b5bd6"/><rect x="284" y="96" width="64" height="24" rx="2" fill="#d08a2c"/>
+    <rect x="251" y="44" width="64" height="24" rx="2" fill="#3d6aa8"/>
+  </g>
+  <!-- ground -->
+  <rect y="120" width="360" height="40" fill="#0a1128"/>
+  <path d="M0 121 H360" stroke="#22305e" stroke-width="2"/>
+  <g stroke="#f7c531" stroke-width="2" opacity=".35" stroke-dasharray="14 12"><path d="M0 146 H360"/></g>
+  <!-- the 40' box -->
+  <g id="box40">
+    <ellipse cx="160" cy="133" rx="132" ry="5" fill="#000" opacity=".35"/>
+    <rect x="30" y="62" width="262" height="68" rx="3" fill="url(#pRib)" stroke="#123a80" stroke-width="2"/>
+    <rect x="30" y="62" width="262" height="6" fill="#174593"/>
+    <rect x="30" y="124" width="262" height="6" fill="#123a80"/>
+    <!-- doors -->
+    <rect x="262" y="68" width="30" height="56" fill="#2462c4"/>
+    <path d="M277 68 V124" stroke="#123a80" stroke-width="1.5"/>
+    <g stroke="#cfd8ee" stroke-width="1.6" opacity=".85"><path d="M268 70 V122 M273 70 V122 M281 70 V122 M286 70 V122"/></g>
+    <!-- corner castings -->
+    <g fill="#0d2c66"><rect x="30" y="62" width="7" height="7"/><rect x="285" y="62" width="7" height="7"/><rect x="30" y="123" width="7" height="7"/><rect x="285" y="123" width="7" height="7"/></g>
+    <text x="44" y="86" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" opacity=".92">MPCU 404040 0</text>
+    <text x="44" y="100" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="10" opacity=".75">45G1 · 40' HC</text>
+    <text x="190" y="118" fill="#f7c531" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700" opacity=".85">ИМПОРТ</text>
+  </g>
+</svg>
+</template>
+
+<script>
+(function(){
+'use strict';
+var RATE = 80.56, DETAIN = 120, DISPOSE = 150;
+var params; try { params = new URLSearchParams(location.search); } catch(e) { params = { get: function(){ return null; } }; }
+var SPEED = Math.max(0.1, Math.min(60, parseFloat(params.get('speed')) || 1));
+function $(id){ return document.getElementById(id); }
+
+/* ---------- tariffs ---------- */
+function storageRate(d){ if (d <= 0) return 0; return d <= 10 ? 0 : d <= 14 ? 90 : d <= 17 ? 100 : 150; }
+function lineRate(d, shift){ if (d <= 0) return 0; var j = d - (shift || 0); return j <= 14 ? 0 : j <= 21 ? 60 : 120; }
+function rub(usd){ return Math.round(usd * RATE); }
+function calc(day, shift){
+  var s = 0, l = 0;
+  for (var i = 1; i <= day; i++){ s += storageRate(i); l += lineRate(i, shift); }
+  return { storUSD: s, lineUSD: l, totalUSD: s + l, stor: rub(s), line: rub(l), total: rub(s + l) };
+}
+function fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; }
+function plural(n, a, b, c){ var m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return b; return c; }
+
+/* ---------- storage ---------- */
+var store = {
+  get: function(k){ try { return window.localStorage.getItem(k); } catch(e) { return null; } },
+  set: function(k, v){ try { window.localStorage.setItem(k, v); } catch(e) {} }
+};
+
+/* ---------- sound ---------- */
+var actx = null, muted = store.get('mp_port_mute') === '1';
+function initAudio(){
+  try {
+    if (!actx){ var AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+    if (actx && actx.state === 'suspended') actx.resume();
+  } catch(e) { actx = null; }
+}
+function blip(freq, dur, vol, type, delay){
+  if (muted || !actx) return;
+  try {
+    var t = actx.currentTime + (delay || 0);
+    var o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  } catch(e) {}
+}
+function tickSound(charging, quiet){
+  var v = quiet ? 0.018 : 0.045;
+  if (charging){ blip(620, 0.08, v, 'triangle'); blip(1240, 0.05, v * 0.35, 'sine', 0.01); }
+  else blip(1050, 0.045, v * 0.7, 'sine');
+}
+function stampSound(){ blip(95, 0.28, 0.22, 'square'); blip(60, 0.35, 0.25, 'sine'); }
+function winSound(){ blip(523, 0.18, 0.08, 'triangle'); blip(659, 0.18, 0.08, 'triangle', 0.12); blip(784, 0.3, 0.09, 'triangle', 0.24); }
+var ICON_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="#eef2ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+var ICON_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="#9aa6cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function renderMute(){ var b = $('btnMute'); b.innerHTML = muted ? ICON_OFF : ICON_ON; b.setAttribute('aria-label', muted ? 'Включить звук' : 'Выключить звук'); }
+
+/* ---------- event cards ---------- */
+/* effect: d = days lost (time jumps forward), u = extra USD, p = progress to release, shift = extra free line days, end = special ending */
+var PRE = {
+  id: 'pre', tag: 'До прихода судна',
+  title: 'Линия предлагает выкупить свободные дни',
+  text: 'Контейнер ещё в море, до прихода неделя. Линия предлагает заранее купить дополнительные свободные дни по контейнеру. После прихода такой опции уже не будет.',
+  choices: [
+    { t: 'Купить +7 дней по $25 за сутки', e: { u: 175, shift: 7, p: 0 }, r: 'Оплачено $175. Контейнер линии теперь бесплатен 21 день вместо 14. Хранение на терминале это, правда, не отменяет.' },
+    { t: 'Не надо, мы же быстро заберём', e: { p: 0 }, r: 'Смелое заявление. Запомним его.' }
+  ]
+};
+var CARDS = [
+  { id: 'silent', title: 'Клиент не отвечает на звонки',
+    text: 'Нужно решение по декларации и оплате. Клиент третий день не берёт трубку, в мессенджере две серые галочки.',
+    choices: [
+      { t: 'Ждать, он же клиент', e: { d: 6, p: 0 }, r: 'Через шесть дней клиент перезвонил: «Я был на выставке. А что, срочно было?»' },
+      { t: 'Действовать по договору самому', e: { d: 1, p: 25 }, r: 'В договоре есть пункт: если клиент недоступен, экспедитор действует в его интересах сам. Подали документы, клиенту ушёл отчёт на почту.' }
+    ] },
+  { id: 'cert', title: 'Нет сертификата соответствия',
+    text: 'Товар подпадает под техрегламент. Без сертификата или декларации соответствия ЕАЭС выпуска не будет. Поставщик прислал красивую бумагу на китайском.',
+    choices: [
+      { t: 'Подать с китайской бумагой, вдруг прокатит', e: { d: 4, p: -5 }, r: 'Не прокатило. Таможня запросила документ и продлила проверку. Минус время, минус нервы.' },
+      { t: 'Срочно оформить через аккредитованный орган', e: { d: 3, u: 350, p: 25 }, r: 'Испытания, протокол, запись в реестре. Три дня и немного денег, зато по-настоящему.' },
+      { t: 'Ждать, пока поставщик разберётся', e: { d: 9, p: 10 }, r: 'Поставщик разобрался. На девятый день.' }
+    ] },
+  { id: 'pay', maxDay: 45, title: 'Оплата застряла у платёжного агента',
+    text: 'Деньги поставщику ушли через платёжного агента и потерялись между двумя банками. Поставщик не даёт телекс-релиз, пока не увидит оплату. Линия без релиза контейнер не выдаёт.',
+    choices: [
+      { t: 'Ждать, банки же', e: { d: 8, p: 10 }, r: 'Деньги нашлись на восьмой день в банке-корреспонденте с пометкой «на проверке».' },
+      { t: 'Заплатить через другого агента, первый платёж вернуть', e: { d: 2, u: 300, p: 25 }, r: 'Комиссия дважды, зато релиз пришёл через два дня. Первый платёж вернут. Когда-нибудь.' }
+    ] },
+  { id: 'urgent', title: 'Агент просит доплату за «срочно»',
+    text: 'Агент готов закрыть документы по контейнеру за день, но «срочно» стоит отдельно. Без срочности обещает «на следующей неделе».',
+    choices: [
+      { t: 'Торговаться из принципа', e: { d: 4, p: 15 }, r: 'Сбили $50. Потеряли четыре дня простоя. Сэкономили, в общем.' },
+      { t: 'Заплатить $150, это дешевле простоя', e: { d: 1, u: 150, p: 20 }, r: 'Одна доплата против сотен долларов в сутки простоя. Математика победила гордость.' },
+      { t: 'Отказаться, пусть делает в порядке очереди', e: { d: 7, p: 10 }, r: 'Очередь оказалась длинной.' }
+    ] },
+  { id: 'inspect', title: 'Таможня назначила досмотр',
+    text: 'Система управления рисками выбрала ваш контейнер. Нужно переставить его на площадку досмотра, найти грузчиков и человека с доверенностью.',
+    choices: [
+      { t: 'Поручить клиенту, это же его груз', e: { d: 7, p: 10 }, r: 'Клиент искал грузчиков неделю. Нашёл двоюродного брата.' },
+      { t: 'Организовать всё на завтра самим', e: { d: 2, u: 220, p: 20 }, r: 'Перестановка, грузчики, вскрытие. Инспектор пересчитал коробки, всё сошлось.' }
+    ] },
+  { id: 'hs', title: 'Ошибка в коде ТН ВЭД',
+    text: 'Таможня считает, что код у товара другой и пошлина на 5% выше. Можно спорить, можно скорректировать.',
+    choices: [
+      { t: 'Спорить до победного', e: { d: 14, p: 10 }, r: 'Победили через две недели. Хранение за эти две недели обошлось дороже разницы в пошлине.' },
+      { t: 'Скорректировать и доплатить пошлину', e: { d: 2, u: 400, p: 20 }, r: 'Доплатили разницу. Обидно, но выпуск ближе.' },
+      { t: 'Выпуск под обеспечение, спорить потом', e: { d: 2, u: 250, p: 20 }, r: 'Внесли обеспечение, товар выпускают, спор идёт без простоя. Взрослое решение.' }
+    ] },
+  { id: 'hold', title: '«Подержите ещё недельку»',
+    text: 'Клиент: «У нас склад забит, пусть контейнер постоит на терминале, там же не горит».',
+    choices: [
+      { t: 'Ну раз клиент просит', e: { d: 7, p: 0 }, r: 'Постоял. Счёт за эту неделю клиент увидит в конце.' },
+      { t: 'Показать в цифрах, сколько стоит неделька', e: { d: 1, p: 15 }, r: 'Отправили расчёт по дням. Клиент нашёл место на складе за один вечер.' }
+    ] },
+  { id: 'holiday', title: 'Праздники',
+    text: 'Терминал работает по сокращённому графику, таможня тоже отдыхает. Хранение не отдыхает никогда.',
+    choices: [
+      { t: 'После праздников разберёмся', e: { d: 8, p: 5 }, r: 'Разобрались. Восемь суток спустя, все свежие и отдохнувшие. Кроме счётчика.' },
+      { t: 'Подать всё до праздников и забронировать слот', e: { d: 2, p: 20 }, r: 'Успели в последний рабочий день. Инспектор даже улыбнулся.' }
+    ] },
+  { id: 'refuse', minDay: 15, maxP: 70, title: 'Клиент хочет отказаться от груза',
+    text: 'Клиент посчитал: товар уже почти никому не нужен, а счёт за хранение растёт. «Может, вообще бросим его?»',
+    choices: [
+      { t: 'Уговаривать клиента дальше', e: { d: 10, p: 5 }, r: 'Уговаривали десять дней. Клиент колеблется, счётчик нет.' },
+      { t: 'Оформить отказ в пользу государства сейчас', e: { d: 3, end: 'refuse' }, r: 'Подали документы на отказ. Расходы до этого дня остаются, зато дальше не капает.' },
+      { t: 'Найти покупателя на часть партии', e: { d: 5, p: 15 }, r: 'Нашёлся покупатель на треть груза. Клиент передумал отказываться.' }
+    ] },
+  { id: 'bank', title: 'Банк хочет документы',
+    text: 'Валютный контроль банка просит контракт, инвойс и пояснения по платежу. Пока не ответите, операции по контракту на паузе.',
+    choices: [
+      { t: 'Пусть клиент поищет контракт', e: { d: 6, p: 5 }, r: 'Контракт нашёлся в почте бухгалтера, который уволился в прошлом году.' },
+      { t: 'Собрать пакет за вечер', e: { d: 1, p: 15 }, r: 'Всё было в папке сделки. Папка сделки решает.' }
+    ] },
+  { id: 'weight', title: 'Вес не сходится',
+    text: 'В коносаменте 18 тонн, в инвойсе 16,5. Таможня интересуется, где полторы тонны.',
+    choices: [
+      { t: 'Запросить у поставщика исправленные документы', e: { d: 5, p: 10 }, r: 'Поставщик исправил. Потом исправил ещё раз. Потом прислал правильный.' },
+      { t: 'Взвесить контейнер на терминале', e: { d: 1, u: 90, p: 15 }, r: 'Весы показали 16,7: в коносаменте вес с тарой и запасом. Пояснение приняли.' }
+    ] },
+  { id: 'sign', title: 'Истекла электронная подпись',
+    text: 'Декларацию подавать некем: подпись клиента истекла вчера. Новую выпустят «в течение пяти рабочих дней».',
+    choices: [
+      { t: 'Ждать новую подпись', e: { d: 6, p: 10 }, r: 'Подпись выпустили. Пять рабочих дней, как и обещали. Плюс выходные.' },
+      { t: 'Подать через таможенного представителя', e: { d: 1, u: 100, p: 20 }, r: 'Представитель подал декларацию по договору со своей подписью. Сто долларов и один день.' }
+    ] },
+  { id: 'local', maxDay: 30, title: 'Линия выставила местные сборы',
+    text: 'Без оплаты местных сборов линии за обработку и выдачу документов релиза не будет. Счёт пришёл в пятницу вечером.',
+    choices: [
+      { t: 'Оплатить по графику платежей', e: { d: 4, p: 10 }, r: 'Бухгалтерия платит по вторникам. Сегодня, к сожалению, была пятница.' },
+      { t: 'Попросить оплатить срочным платежом', e: { d: 1, p: 15 }, r: 'Деньги ушли в тот же вечер. Релиз в понедельник утром.' }
+    ] }
+];
+var TRUCK = { id: 'truck', title: 'Фура не приехала',
+  text: 'Выпуск почти есть, машина заказана на утро. Утром выяснилось, что водитель «в пути» второй день, и не к вам.',
+  choices: [
+    { t: 'Ждать, обещал же', e: { d: 3, p: 10 }, r: 'Приехал через три дня. Без извинений.' },
+    { t: 'Найти другую машину на бирже, дороже', e: { d: 1, u: 120, p: 20 }, r: 'Новая машина пришла к обеду. Стоила дороже. Простой стоил бы ещё дороже.' }
+  ] };
+var FILLER = { id: 'idle', title: 'Ничего не происходит',
+  text: 'Все ждут друг друга: клиент ждёт поставщика, поставщик ждёт банк, банк ждёт пятницу. Контейнер стоит.',
+  choices: [
+    { t: 'Обзвонить всех и дожать', e: { d: 2, p: 15 }, r: 'Три звонка, два письма, одно «ладно, сейчас сделаем». Дело сдвинулось.' },
+    { t: 'Подождать, само рассосётся', e: { d: 6, p: 3 }, r: 'Не рассосалось.' }
+  ] };
+var DETAIN_CARD = { id: 'detain', tag: 'День 120', title: 'Срок временного хранения истёк',
+  text: 'Четыре месяца прошли. Таможня задержала товар. У клиента 30 дней, чтобы оформить его, иначе товаром распорядится государство.',
+  choices: [
+    { t: 'Ждать решения клиента', e: { p: 0 }, r: 'Клиент обещал подумать. Счётчик думать не обещал, он просто считает.' },
+    { t: 'Закрыть всё за 30 дней любой ценой', e: { u: 300, p: 25 }, r: 'Подняли всех. Расходы на оформление и хранение задержанного товара, зато шанс есть.' }
+  ] };
+
+/* ---------- state ---------- */
+var S = null, timer = null;
+function newState(){
+  return { day: 0, stor: 0, line: 0, extra: 0, shift: 0, progress: 15, paused: true, ended: false,
+    deck: CARDS.slice(), nextEvent: 2, detained: false, truckDone: false, log: [], cardsSeen: 0 };
+}
+
+/* ---------- scenes ---------- */
+function mountScene(el){
+  el.innerHTML = '';
+  var node = document.importNode($('tplScene').content, true);
+  // unique ids per scene to avoid collisions
+  var suf = el.id;
+  var svg = node.querySelector('svg');
+  ['gSky', 'gBox', 'pRib'].forEach(function(id){
+    var d = svg.querySelector('#' + id); if (d) d.id = id + '_' + suf;
+  });
+  svg.innerHTML = svg.innerHTML.replace(/url\(#(gSky|gBox|pRib)\)/g, 'url(#$1_' + suf + ')');
+  var box = svg.querySelector('#box40'); if (box) { box.id = 'box40_' + suf; box.setAttribute('class', 'box40'); }
+  el.appendChild(node);
+  var st = document.createElement('div'); st.className = 'stamp'; el.appendChild(st);
+}
+function stamp(el, text, cls){
+  var st = el.querySelector('.stamp');
+  if (!st) return;
+  st.className = 'stamp';
+  st.innerHTML = text;
+  void st.offsetWidth;
+  st.className = 'stamp on ' + (cls || '');
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  stampSound();
+}
+function clearStamp(el){ var st = el.querySelector('.stamp'); if (st) st.className = 'stamp'; }
+
+/* ---------- render ---------- */
+function setBox(boxId, valId, subId, usd, rate, freeLeft){
+  var b = $(boxId);
+  $(valId).textContent = fmt(rub(usd));
+  if (rate > 0){ b.className = 'box pay'; $(subId).textContent = '$' + rate + ' в сутки'; }
+  else {
+    b.className = 'box free';
+    $(subId).textContent = S.day === 0 ? 'бесплатно' : 'бесплатно, ещё ' + freeLeft + ' ' + plural(freeLeft, 'сутки', 'суток', 'суток');
+  }
+}
+function render(){
+  $('vDay').textContent = S.day;
+  var d = S.day;
+  var sr = storageRate(d), lr = lineRate(d, S.shift);
+  setBox('bStor', 'vStor', 'sStor', S.stor, sr, Math.max(0, 10 - d));
+  setBox('bLine', 'vLine', 'sLine', S.line, lr, Math.max(0, 14 + S.shift - d));
+  var total = rub(S.stor + S.line + S.extra);
+  $('vTotal').textContent = fmt(total);
+  $('bTotal').className = 'box total' + (sr + lr > 0 ? ' hot' : '');
+  $('sTotal').innerHTML = S.extra > 0 ? 'в т.ч. доплаты<br>' + fmt(rub(S.extra)) : 'курс 80,56 ₽/$';
+  var vh = $('vhText');
+  if (d === 0){ $('vhL').textContent = 'Судно на подходе'; $('vhR').textContent = ''; vh.className = 'vh'; }
+  else if (!S.detained){
+    var left = DETAIN - d;
+    $('vhL').textContent = 'Временное хранение';
+    $('vhR').textContent = 'осталось ' + left + ' ' + plural(left, 'день', 'дня', 'дней');
+    vh.className = left <= 20 ? 'vh alarm' : 'vh';
+  } else {
+    var left2 = Math.max(0, DISPOSE - d);
+    $('vhL').textContent = 'Товар задержан таможней';
+    $('vhR').textContent = 'до распоряжения ' + left2 + ' ' + plural(left2, 'день', 'дня', 'дней');
+    vh.className = 'vh alarm';
+  }
+  $('vhBar').style.width = Math.min(100, d / DISPOSE * 100) + '%';
+}
+function pulse(){
+  ['bStor', 'bLine', 'bTotal'].forEach(function(id){
+    var b = $(id); if (b.className.indexOf('pay') < 0 && b.className.indexOf('hot') < 0) return;
+    b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse');
+  });
+}
+function setStatus(t){ $('status').textContent = t; }
+function addLog(text){
+  S.log.unshift({ day: S.day, text: text });
+  if (S.log.length > 3) S.log.length = 3;
+  $('log').innerHTML = S.log.map(function(l){ return '<li><span>д. ' + l.day + '</span>' + escapeHtml(l.text) + '</li>'; }).join('');
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+var IDLE_STATUS = [
+  'Контейнер стоит на терминале. Все чего-то ждут.',
+  'Тишина в почте. Счётчик не молчит.',
+  'Клиент «вот-вот» пришлёт документы.',
+  'Контейнер стоит. Рубли идут.',
+  'Терминал работает исправно: начисляет.'
+];
+
+/* ---------- time ---------- */
+function dayDelay(){ var b = S.day < 30 ? 600 : S.day < 90 ? 460 : 400; return b / SPEED; }
+function stepDay(quiet){
+  S.day++;
+  var sr = storageRate(S.day), lr = lineRate(S.day, S.shift);
+  S.stor += sr; S.line += lr;
+  render();
+  tickSound(sr + lr > 0, quiet);
+  pulse();
+  if (S.day === 11) setStatus('Бесплатное хранение на терминале закончилось. Пошли деньги.');
+  else if (S.day === 15 + S.shift) setStatus('Свободные дни по контейнеру линии тоже всё. Теперь капает в два счётчика.');
+  else if (S.day > 15 && S.day % 9 === 0) setStatus(IDLE_STATUS[(S.day / 9) % IDLE_STATUS.length | 0]);
+}
+function checkBoundaries(){
+  if (S.day >= DISPOSE){ lose(); return true; }
+  if (S.day >= DETAIN && !S.detained){ detain(); return true; }
+  return false;
+}
+function loop(){
+  clearTimeout(timer);
+  if (S.paused || S.ended) return;
+  timer = setTimeout(function(){
+    if (S.paused || S.ended) return;
+    stepDay(false);
+    if (checkBoundaries()) return;
+    if (S.day >= S.nextEvent){ openEvent(pickCard()); return; }
+    loop();
+  }, dayDelay());
+}
+function jump(n, done){
+  if (!n || n <= 0){ done(); return; }
+  var i = 0, gap = Math.max(12, 75 / SPEED);
+  function step(){
+    if (S.ended) return;
+    stepDay(true); i++;
+    if (checkBoundaries()) return;
+    if (i < n) setTimeout(step, gap); else setTimeout(done, gap);
+  }
+  setTimeout(step, gap);
+}
+function scheduleNext(){
+  var gap = S.day < 30 ? 2 + Math.floor(Math.random() * 2) : 3 + Math.floor(Math.random() * 3);
+  S.nextEvent = S.day + gap;
+}
+
+/* ---------- events ---------- */
+function pickCard(){
+  if (!S.truckDone && S.progress >= 70){ S.truckDone = true; return TRUCK; }
+  var ok = S.deck.filter(function(c){
+    if (c.minDay && S.day < c.minDay) return false;
+    if (c.maxDay && S.day > c.maxDay) return false;
+    if (c.maxP && S.progress > c.maxP) return false;
+    return true;
+  });
+  if (!ok.length) return FILLER;
+  var c = ok[Math.floor(Math.random() * ok.length)];
+  S.deck.splice(S.deck.indexOf(c), 1);
+  return c;
+}
+var curCard = null, curChoice = null;
+function openEvent(card){
+  S.paused = true; clearTimeout(timer);
+  curCard = card; curChoice = null; S.cardsSeen++;
+  $('cTag').textContent = card.tag || ('Событие · день ' + S.day);
+  $('cTitle').textContent = card.title;
+  $('cText').textContent = card.text;
+  var box = $('cChoices'); box.innerHTML = ''; box.style.display = '';
+  card.choices.forEach(function(ch, i){
+    var b = document.createElement('button');
+    b.className = 'choice'; b.type = 'button'; b.textContent = ch.t;
+    b.addEventListener('click', function(){ choose(i); });
+    box.appendChild(b);
+  });
+  $('cResult').style.display = 'none';
+  $('overlay').className = 'overlay on';
+  $('card').scrollTop = 0;
+  blip(880, 0.09, 0.05, 'sine'); blip(660, 0.12, 0.05, 'sine', 0.09);
+}
+function choose(i){
+  if (curChoice) return;
+  var ch = curCard.choices[i]; curChoice = ch;
+  var e = ch.e || {};
+  if (e.u) S.extra += e.u;
+  if (e.shift) S.shift += e.shift;
+  if (e.p) S.progress = Math.max(0, Math.min(100, S.progress + e.p));
+  render();
+  $('cChoices').style.display = 'none';
+  $('cResText').textContent = ch.r;
+  var chips = [];
+  if (e.d) chips.push('<span class="chip ' + (e.d >= 4 ? 'bad' : 'neu') + '">+' + e.d + ' ' + plural(e.d, 'день', 'дня', 'дней') + ' простоя</span>');
+  if (e.u) chips.push('<span class="chip bad">−$' + e.u + ' (' + fmt(rub(e.u)) + ')</span>');
+  if (e.shift) chips.push('<span class="chip good">+' + e.shift + ' свободных дней линии</span>');
+  if (e.end === 'refuse') chips.push('<span class="chip neu">счётчик остановится</span>');
+  else if (e.p >= 15) chips.push('<span class="chip good">выпуск заметно ближе</span>');
+  else if (e.p > 0) chips.push('<span class="chip neu">выпуск чуть ближе</span>');
+  else if (e.p < 0) chips.push('<span class="chip bad">выпуск дальше</span>');
+  else if (curCard.id !== 'pre') chips.push('<span class="chip bad">выпуск не ближе</span>');
+  $('cChips').innerHTML = chips.join('');
+  $('cResult').style.display = '';
+  addLog(curCard.title + ': ' + ch.t.toLowerCase());
+}
+function closeEvent(){
+  if (!curChoice) return;
+  var e = curChoice.e || {}, card = curCard;
+  curCard = null; curChoice = null;
+  $('overlay').className = 'overlay';
+  if (card.id === 'pre') setStatus('Судно пришвартовалось. Контейнер выгружен на терминал. Часы пошли.');
+  else if ((e.p || 0) >= 15) setStatus('Дело движется. Выпуск ближе.');
+  else setStatus('Контейнер стоит. Счётчик работает.');
+  jump(e.d || 0, function(){
+    if (S.ended) return;
+    if (e.end === 'refuse'){ refuse(); return; }
+    if (S.progress >= 100){ win(); return; }
+    scheduleNext();
+    S.paused = false;
+    loop();
+  });
+}
+
+/* ---------- endings ---------- */
+function detain(){
+  S.detained = true; S.paused = true; clearTimeout(timer);
+  render();
+  setStatus('Срок временного хранения истёк. Товар задержан таможней.');
+  stamp($('sceneGame'), 'ЗАДЕРЖАНО', '');
+  setTimeout(function(){ if (!S.ended) openEvent(DETAIN_CARD); }, 1300 / Math.min(SPEED, 3));
+}
+function finish(kind, delay){
+  S.ended = true; S.paused = true; clearTimeout(timer);
+  $('overlay').className = 'overlay';
+  setTimeout(function(){ showEnd(kind); }, delay / Math.min(SPEED, 3));
+}
+function lose(){
+  if (S.ended) return;
+  setStatus('Прошло 150 дней. Товаром распоряжается государство.');
+  stamp($('sceneGame'), 'РАСПОРЯЖАЕТСЯ<br>ГОСУДАРСТВО', 'small');
+  finish('lose', 2200);
+}
+function refuse(){
+  if (S.ended) return;
+  setStatus('Отказ в пользу государства оформлен. Счётчик остановлен.');
+  stamp($('sceneGame'), 'ОТКАЗ ОФОРМЛЕН', 'yellow');
+  finish('refuse', 2000);
+}
+function win(){
+  if (S.ended) return;
+  S.ended = true; S.paused = true; clearTimeout(timer);
+  setStatus('Декларация выпущена, фура у ворот. Забираем!');
+  setTimeout(function(){
+    stepDay(false);
+    clearStamp($('sceneGame'));
+    stamp($('sceneGame'), 'ВЫПУЩЕНО', 'green');
+    winSound();
+    setTimeout(function(){
+      var b = $('sceneGame').querySelector('.box40'); if (b) b.setAttribute('class', 'box40 go');
+      var st = $('sceneGame').querySelector('.stamp'); if (st) st.style.transition = 'opacity .8s';
+    }, 700 / Math.min(SPEED, 3));
+    setTimeout(function(){ showEnd('win'); }, 2600 / Math.min(SPEED, 3));
+  }, 600 / Math.min(SPEED, 3));
+}
+function rating(kind, total){
+  if (kind === 'lose') return 'Груз ушёл государству';
+  if (kind === 'refuse') return S.day <= 45 ? 'Вовремя отпустили' : 'Отпустили, но поздно';
+  if (total < 200000) return 'Экспедитор от бога';
+  if (total < 500000) return 'Нормально, но дорого';
+  if (total < 1000000) return 'Клиент запомнит этот счёт';
+  return 'Миллион на ветер';
+}
+var lastShareText = '';
+function showEnd(kind){
+  var total = rub(S.stor + S.line + S.extra);
+  var r = rating(kind, total);
+  $('eRating').textContent = r;
+  var dayWord = S.day + '-й день';
+  var when = kind === 'win' ? 'Контейнер вывезен на ' + dayWord + (S.detained ? ', уже после задержания таможней' : '')
+    : kind === 'refuse' ? 'Отказ от груза оформлен на ' + dayWord
+    : 'Прошло 150 дней: товаром распорядилось государство';
+  $('eWhen').textContent = when;
+  $('eStor').textContent = fmt(rub(S.stor));
+  $('eLine').textContent = fmt(rub(S.line));
+  $('eExtra').textContent = fmt(rub(S.extra));
+  $('eTotal').textContent = fmt(total);
+  var sc = $('sceneEnd'); mountScene(sc);
+  setTimeout(function(){
+    if (kind === 'win') stamp(sc, 'ВЫПУЩЕНО', 'green');
+    else if (kind === 'refuse') stamp(sc, 'ОТКАЗ ОФОРМЛЕН', 'yellow');
+    else stamp(sc, 'РАСПОРЯЖАЕТСЯ<br>ГОСУДАРСТВО', 'small');
+  }, 250);
+  // best result: cheapest successful pickup
+  var best = loadBest(), isNew = false;
+  if (kind === 'win' && (!best || total < best.total)){ best = { total: total, day: S.day }; store.set('mp_port_best', JSON.stringify(best)); isNew = true; }
+  $('bestEnd').innerHTML = best ? (isNew ? '<b>Новый рекорд!</b> ' : 'Ваш рекорд: ') + '<b>' + fmt(best.total) + '</b>, вывезли на ' + best.day + '-й день' : '';
+  lastShareText = kind === 'win'
+    ? 'Я вывез контейнер из порта на ' + dayWord + ', простой обошёлся в ' + fmt(total) + '. «' + r + '». Сможете дешевле?'
+    : kind === 'refuse'
+      ? 'Я отказался от груза на ' + dayWord + ' и заплатил ' + fmt(total) + ' за простой. Сможете вывезти?'
+      : 'У меня груз ушёл государству, счёт за простой ' + fmt(total) + '. Сможете вывезти контейнер?';
+  show('scrEnd');
+  window.scrollTo(0, 0);
+}
+function loadBest(){ try { var b = JSON.parse(store.get('mp_port_best') || 'null'); return b && typeof b.total === 'number' ? b : null; } catch(e) { return null; } }
+
+/* ---------- screens ---------- */
+function show(id){ ['scrStart', 'scrGame', 'scrEnd'].forEach(function(s){ $(s).className = 'screen' + (s === id ? ' on' : ''); }); }
+function renderBestStart(){
+  var b = loadBest();
+  $('bestStart').innerHTML = b ? 'Ваш рекорд: <b>' + fmt(b.total) + '</b>, вывезли на ' + b.day + '-й день' : '';
+}
+function startGame(){
+  initAudio();
+  clearTimeout(timer);
+  S = newState();
+  mountScene($('sceneGame'));
+  $('log').innerHTML = '';
+  setStatus('Судно на подходе к Петербургу. Пока всё бесплатно.');
+  render();
+  show('scrGame');
+  window.scrollTo(0, 0);
+  setTimeout(function(){ openEvent(PRE); }, 500 / Math.min(SPEED, 3));
+}
+
+/* ---------- share / links ---------- */
+function toast(t){ var el = $('toast'); el.textContent = t; el.className = 'toast on'; setTimeout(function(){ el.className = 'toast'; }, 2200); }
+function copyText(text){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(function(){ return true; }, function(){ return legacyCopy(text); });
+  }
+  return Promise.resolve(legacyCopy(text));
+}
+function legacyCopy(text){
+  try {
+    var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+    var ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  } catch(e) { return false; }
+}
+function share(){
+  var url = location.href.split('#')[0].replace(/[?&]speed=[^&]*/, '');
+  var data = { title: 'Контейнер в порту', text: lastShareText, url: url };
+  if (navigator.share){
+    navigator.share(data).catch(function(err){ if (!err || err.name !== 'AbortError') fallback(); });
+  } else fallback();
+  function fallback(){
+    copyText(lastShareText + ' ' + url).then(function(ok){ toast(ok ? 'Ссылка скопирована' : url); });
+  }
+}
+var tg = null;
+try { if (window.Telegram && window.Telegram.WebApp){ tg = window.Telegram.WebApp; tg.ready(); tg.expand(); } } catch(e) { tg = null; }
+function openExt(e, url, isTg){
+  if (!tg) return;
+  try {
+    e.preventDefault();
+    if (isTg && tg.openTelegramLink) tg.openTelegramLink(url); else if (tg.openLink) tg.openLink(url); else location.href = url;
+  } catch(err) { location.href = url; }
+}
+
+/* ---------- wire up ---------- */
+$('btnStart').addEventListener('click', startGame);
+$('btnAgain').addEventListener('click', startGame);
+$('btnShare').addEventListener('click', share);
+$('cNext').addEventListener('click', closeEvent);
+$('btnMute').addEventListener('click', function(){ muted = !muted; store.set('mp_port_mute', muted ? '1' : '0'); initAudio(); renderMute(); });
+$('lnkYt').addEventListener('click', function(e){ openExt(e, 'https://youtu.be/__3cUv3wt-8', false); });
+$('lnkTg').addEventListener('click', function(e){ openExt(e, 'https://t.me/mokraya_pechat', true); });
+document.addEventListener('visibilitychange', function(){
+  if (!S || S.ended) return;
+  if (document.hidden){ clearTimeout(timer); }
+  else if (!S.paused) loop();
+});
+mountScene($('sceneStart'));
+renderMute();
+renderBestStart();
+
+/* test hook: tariff check and state peek (no side effects unless called) */
+window.__MP = {
+  calc: calc,
+  state: function(){ return S; },
+  renderAt: function(day){ if (!S) S = newState(); var c = calc(day, 0); S.day = day; S.stor = c.storUSD; S.line = c.lineUSD; S.extra = 0; S.shift = 0; S.detained = day >= DETAIN; render(); return $('vTotal').textContent; }
+};
+})();
+</script>
+</body>
+</html>
